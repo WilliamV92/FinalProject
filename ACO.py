@@ -35,3 +35,9 @@ class City:
 
 new_map = Map(10)
 new_map.display_cities()
+
+# def ANTS_SOLVE: 
+#   for i in range(0, num_iterations):
+#       for k in range(0, num_ants):
+#           ant.solve_problem()
+#       update_pheromenes()

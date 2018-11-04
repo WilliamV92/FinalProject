@@ -36,8 +36,29 @@ class City:
 new_map = Map(10)
 new_map.display_cities()
 
-# def ANTS_SOLVE: 
-#   for i in range(0, num_iterations):
-#       for k in range(0, num_ants):
-#           ant.solve_problem()
-#       update_pheromenes()
+
+
+# ant:
+    # adds to know: (1) the map; (2) matrix of pheromenes (pheromone_trails[][])
+    # list of visited cities: A, D, E, F
+    # function to mark city as visited
+    #    def visit_city(city_id):
+    #        visited_cities.add(city_id)
+    # calculate tour length (based on visitied cities and map)
+    # do_tour() generate_solution()
+    #   pick next city()
+    #       calculate probabilities()
+
+# colony:
+    # list of ants
+    # best tour found
+    # update pheromenes():
+        # updates pheromone values on each edge
+
+    # solve_problem:
+        # def ANTS_SOLVE: 
+        #   for i in range(0, num_iterations):
+        #       for k in range(0, num_ants):
+        #           ant.solve_problem()
+        #       update_pheromenes()
+

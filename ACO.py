@@ -175,4 +175,4 @@ problem = Problem(10)
 for x in range(len(problem.distance_matrix)):
     for y in range(len(problem.distance_matrix)):
         print(problem.distance_matrix[x][y], end=",", flush=True)
-    print()z
+    print()

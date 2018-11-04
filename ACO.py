@@ -9,7 +9,7 @@ def generate_matrix(no_cities):
         cities.append(row)
     return cities
 
-def generate_trails(city_matrix):
+def generate_edges(city_matrix):
     city_count = len(city_matrix)
     trails = []
     for i in range(city_count):
@@ -23,6 +23,6 @@ def generate_trails(city_matrix):
     return trails
 
 city_matrix = generate_matrix(10)
-trail_matrix = generate_trails(city_matrix)
+edge_matrix = generate_edges(city_matrix)
 print(city_matrix)
-print(trail_matrix)
+print(edge_matrix)

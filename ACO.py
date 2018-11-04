@@ -1,6 +1,14 @@
 import random as rand
+import math as math
 
-def generate_matrix(no_cities):
+class City:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+    def distance_from(self, city):     
+        return math.hypot(city.x - self.x, city.y -self.y)
+
+def generate_cities(no_cities):
     cities = []
     for i in range(no_cities):
         row = []

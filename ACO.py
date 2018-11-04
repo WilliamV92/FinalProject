@@ -137,13 +137,31 @@ class Problem:
         self.map = Map(num_cities)
         self.distance_matrix = []
         self.pheromone_trails = []
-        self.initialize()
+        self.initialize(num_cities)
     
-    def initialize(self):
+    def initialize(self, num_cities):
         # pre-calculate distances between all cities in maps
         self.distance_matrix = [] 
+        for i in range(len(self.map.cities.keys())):
+            temp_distances = []
+            for j in range(0, len(self.map.cities.keys())):
+                if i == j:
+                    temp_distances.append(0)
+                elif j < i:
+                    temp_distances.append(self.distance_matrix[j][i])
+                else:
+                    city1 = self.map.cities[i]
+                    city2 = self.map.cities[j]
+                    distance = math.hypot((city1.x - city2.x), (city1.y - city2.y))
+                    temp_distances.append(distance)
+            self.distance_matrix.append(temp_distances)
         # prepopulate pheromone matrix with value of 1 for each edge
         self.pheromone_trails = []
+        for i in range(num_cities):
+            temp_trail = []
+            for j in range(num_cities):
+                temp_trail.append(1)
+            self.pheromone_trails.append(temp_trail)
 
 def main():
     # generate problem with 10 cities
@@ -152,3 +170,9 @@ def main():
     colony = AntColony(problem)
     # solve problem with colony
     colony.solve_problem()
+
+problem = Problem(10)
+for x in range(len(problem.distance_matrix)):
+    for y in range(len(problem.distance_matrix)):
+        print(problem.distance_matrix[x][y], end=",", flush=True)
+    print()z

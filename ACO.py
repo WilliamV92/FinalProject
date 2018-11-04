@@ -37,6 +37,55 @@ new_map = Map(10)
 new_map.display_cities()
 
 
+class Ant:
+    def __init__(self, problem):
+        self.problem = problem
+        self.visited_cities = []
+        self.tour_length = 0
+
+    def visit_city(self, city_id):
+        self.visited_cities.append(city_id)
+    
+    def has_visited(self, city_id):
+        return not city_id not in self.visited_cities
+
+    def update_tour_length(self, current_city_id, city_id):
+        distance = 0
+        # calculate distane from current_city_id to city_id
+        return self.tour_length + distance
+    
+    def tour_map(self, start_city_id):
+        # we need something that if its the first iteration, we make them all start off in random directions
+        # because we have no pheromone values yet...so we don't want them all just doing them same thing
+        # by basically doing a shortest path algorithm...
+        num_cities = len(map)
+        current_city_id = start_city_id
+        for i in range(0, num_cities):
+            # determine probability to travel to each city from current city
+            visit_probailities = self.calculate_probailities(current_city_id)
+            # choose next city to visit
+            next_city_id = self.choose_next_city(visit_probailities)
+            # visit city and update trail length
+            self.visit_city(next_city_id)
+            self.update_tour_length(current_city_id, next_city_id)
+            current_city_id = next_city_id
+        # when I have visited final city, go back to start, and update tour length?
+    
+    def calculate_probailities(self, current_city_id):
+        # at index 0 is the probability for visiting city with id 0
+        visit_probabilities = []
+        # calculate sum of (T(i-j) * alpha) * (N(i-j) * beta) for all cities ant has not yet visited
+        #       loop through all cities, check if visited, if not, add to sigma value
+        # calculate probailities for all cities any has not visited yet:
+        # pheromone_trails (T(i-j) * alpha) * (N(i-j) * beta) / sigma
+        #       loop throug all cities, if visited probaility = 0, else calculate probaility
+        return visit_probabilities
+    
+    def choose_next_city(self, visit_probabilities):
+        # make choice of which city to visit based on probailities
+        city_id = 0
+        return city_id
+
 
 # ant:
     # adds to know: (1) the map; (2) matrix of pheromenes (pheromone_trails[][])
@@ -48,6 +97,27 @@ new_map.display_cities()
     # do_tour() generate_solution()
     #   pick next city()
     #       calculate probabilities()
+
+
+class AntColony:
+    def __init__(self, problem):
+        self.problem = problem
+        self.ants = []
+        self.best_tour = None
+        self.initialize_colony()
+    
+    def initialize_colony(self):
+        # make all ants and add them to list...number of limits based on problem (i.e, num of cities?)
+        # initialize the ants?
+        self.ants.append(Ant(self.problem))
+
+    def solve_problem(self):
+        # psuedocode for AC0
+        # for i in range(0, num_iterations):
+        #       for k in range(0, num_ants):
+        #           ant.solve_problem()
+        #       update_pheromenes()
+        return self.best_tour
 
 # colony:
     # list of ants
@@ -62,3 +132,23 @@ new_map.display_cities()
         #           ant.solve_problem()
         #       update_pheromenes()
 
+class Problem:
+    def __init__(self, num_cities):
+        self.map = Map(num_cities)
+        self.distance_matrix = []
+        self.pheromone_trails = []
+        self.initialize()
+    
+    def initialize(self):
+        # pre-calculate distances between all cities in maps
+        self.distance_matrix = [] 
+        # prepopulate pheromone matrix with value of 1 for each edge
+        self.pheromone_trails = []
+
+def main():
+    # generate problem with 10 cities
+    problem = Problem(10)
+    # create colony and give it the problem
+    colony = AntColony(problem)
+    # solve problem with colony
+    colony.solve_problem()

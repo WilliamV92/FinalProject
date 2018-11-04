@@ -18,6 +18,10 @@ class Map:
             cities[i] = City(existing_cities.pop(), i)
         return cities
 
+    def display_cities(self):
+        for city in self.cities:
+            print(self.cities[city])
+
 class City:
     def __init__(self, coords, id):
         self.x = coords[0]
@@ -25,7 +29,9 @@ class City:
         self.id = id
     def distance_from(self, city):
         return math.hypot(city.x - self.x, city.y -self.y)
+    def __str__(self):
+        return("ID: {0} X: {1} Y: {2}".format(self.id, self.x, self.y))
 
 
 new_map = Map(10)
-print(new_map.cities)
+new_map.display_cities()

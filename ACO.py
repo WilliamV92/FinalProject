@@ -65,9 +65,9 @@ class Ant:
         # we need something that if its the first iteration, we make them all start off in random directions
         # because we have no pheromone values yet...so we don't want them all just doing them same thing
         # by basically doing a shortest path algorithm...
-        num_cities = len(map)
         current_city_id = start_city_id
-        for i in range(0, num_cities):
+        self.visit_city(start_city_id)
+        for i in range(0, self.problem.num_cities - 1):
             # determine probability to travel to each city from current city
             visit_probailities = self.calculate_probabilities(current_city_id)
             # choose next city to visit
@@ -77,6 +77,8 @@ class Ant:
             self.update_tour_length(current_city_id, next_city_id)
             current_city_id = next_city_id
         # when I have visited final city, go back to start, and update tour length?
+        self.visit_city(start_city_id)
+        self.update_tour_length(current_city_id, start_city_id)
     
     def calculate_probabilities(self, current_city_id):
         # at index 0 is the probability for visiting city with id 0
@@ -85,8 +87,8 @@ class Ant:
         pheromone_total = 0.0
         for i in range(self.problem.num_cities):
             if i not in self.visited_cities and i != current_city_id:
-                edge_pheromone = math.pow(self.problem.pheromone_trails[current_city_id][i], self.problem.alpha)
-                edge_cost = math.pow(1.0 / self.problem.distance_matrix[current_city_id][i], self.problem.beta)
+                edge_pheromone = math.pow(self.problem.pheromone_trails[current_city_id][i], ALPHA)
+                edge_cost = math.pow(1.0 / self.problem.distance_matrix[current_city_id][i], BETA)
                 # this calculation is used below as well
                 # storing it in an array for later use
                 trail_contributions.append(edge_pheromone * edge_cost)
@@ -121,7 +123,7 @@ class AntColony:
     
     def initialize_colony(self):
         # add one ant to colony per city in map
-        for i in range (0, len(problem.map)):
+        for i in range (0, self.problem.num_cities):
             self.ants.append(Ant(self.problem))
 
     def solve_problem(self):
@@ -142,27 +144,21 @@ class AntColony:
     def update_pheromones(self):
         pheromone_trails = self.problem.pheromone_trails
         # reduce pheromone levels on all edges base give constant evaporation rate
-        for i in range(0, len(pheromone_trails)):
-            for j in range(0, pheromone_trails[0]):
+        for i in range(0, self.problem.num_cities):
+            for j in range(0, self.problem.num_cities):
                 pheromone_trails[i][j] = pheromone_trails[i][j] * EVAPORATION_RATE
         # place each ant's pheromone on the edges it traveled in its touor
         for ant in self.ants:
             # calculate how much pheromone this ant places on each edge
             pheromone_amount = Q / ant.tour_length
-            for i in range(0, len(ant.visited_cities)):
+            for i in range(0, len(ant.visited_cities) - 1):
                 city_id = ant.visited_cities[i]
-                if not i == len(ant.visited_cities) - 1:
-                    # put pheromone on edge between current city and next city
-                    next_city_id = ant.visited_cities[i + 1]
-                else:
-                    # this is last city in tour-leave pheromone between this city and start
-                    next_city_id = ant.visited_cities[0]
+                # put pheromone on edge between current city and next city
+                next_city_id = ant.visited_cities[i + 1]
                 pheromone_trails[city_id][next_city_id] = pheromone_trails[city_id][next_city_id] + pheromone_amount
 
 class Problem:
     def __init__(self, num_cities):
-        self.alpha = 1
-        self.beta = 5
         self.map = Map(num_cities)
         self.num_cities = num_cities
         self.distance_matrix = []
@@ -199,11 +195,13 @@ def main():
     # create colony and give it the problem
     colony = AntColony(problem)
     # solve problem with colony
-    colony.solve_problem()
+    print(colony.solve_problem())
 
-problem = Problem(10)
-ant = Ant(problem)
-print(ant.choose_next_city(ant.calculate_probabilities(0)))
+
+main()
+# problem = Problem(10)
+# ant = Ant(problem)
+# print(ant.choose_next_city(ant.calculate_probabilities(0)))
 # problem = Problem(10)
 # for x in range(len(problem.distance_matrix)):
 #     for y in range(len(problem.distance_matrix)):

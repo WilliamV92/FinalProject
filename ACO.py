@@ -117,11 +117,11 @@ class AntColony:
         for ant in self.ants:
             if self.best_tour is None:
                 self.best_tour = (ant.visited_cities, ant.tour_length)
-            elif ant.tour_length > self.best_tour[1]:
+            elif ant.tour_length < self.best_tour[1]:
                 self.best_tour = (ant.visited_cities, ant.tour_length)
 
     def update_pheromones(self):
-        pheromone_trails = problem.pheromone_trails
+        pheromone_trails = self.problem.pheromone_trails
         # reduce pheromone levels on all edges base give constant evaporation rate
         for i in range(0, len(pheromone_trails)):
             for j in range(0, pheromone_trails[0]):

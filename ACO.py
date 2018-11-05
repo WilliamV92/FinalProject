@@ -7,6 +7,7 @@ BETA = 4 # the importance of cost (Nij) in chosing next city
 EVAPORATION_RATE = 0.25 # the rate at which pheromene evaporates from trail
 Q = 100 # the total amount of pheromoene left on a trail by an ant
 NUMBER_OF_ITERATIONS = 10 # the number of iterations to let ants explore map
+BASE_RANDOM_CHOICE_RATE = 0.3 # base rate at which ants will pick a random city (decreases with each iteration)
 
 class Map:
     def __init__(self, city_count):
@@ -59,7 +60,7 @@ class Ant:
     def update_tour_length(self, current_city_id, city_id):
         self.tour_length += self.problem.distance_matrix[current_city_id][city_id]
     
-    def tour_map(self, start_city_id):
+    def tour_map(self, start_city_id, iteration):
         # we need something that if its the first iteration, we make them all start off in random directions
         # because we have no pheromone values yet...so we don't want them all just doing them same thing
         # by basically doing a shortest path algorithm...
@@ -69,7 +70,7 @@ class Ant:
             # determine probability to travel to each city from current city
             visit_probailities = self.calculate_probabilities(current_city_id)
             # choose next city to visit
-            next_city_id = self.choose_next_city(visit_probailities)
+            next_city_id = self.choose_next_city(visit_probailities, iteration)
             # visit city and update trail length
             self.visit_city(next_city_id)
             self.update_tour_length(current_city_id, next_city_id)
@@ -101,16 +102,29 @@ class Ant:
                 visit_probabilities.append(trail_contributions[i] / pheromone_total)
         return visit_probabilities
     
-    def choose_next_city(self, visit_probabilities):
-        # make choice of which city to visit based on probailities
-        accumulated_probability = 0.0
-        rand_value = rand.uniform(0, 1)
-        for i in range(len(visit_probabilities)):
-            accumulated_probability += visit_probabilities[i]
-            if accumulated_probability > rand_value:
-                return i
-        return len(visit_probabilities) - 1
-
+    def choose_next_city(self, visit_probabilities, iteration):
+        # ant should pick a random city in some cases, especially early on, to make sure we explore
+        # the search space. decrease rate of random choice over time
+        rand_choice = rand.uniform(0, 1)
+        random_choice_rate = BASE_RANDOM_CHOICE_RATE / (iteration + 1)
+        if (iteration == 0 and len(self.visited_cities) == 1) or rand_choice < random_choice_rate:
+            # also random choice for first move from starting city on the first iteration...
+            choice = None
+            while choice is None:
+                # pick a random city and check if ant hasn't visited yet
+                choice = rand.randint(0, self.problem.num_cities - 1)
+                if self.has_visited(choice):
+                    choice = None
+            return choice
+        else:
+            # make choice of which city to visit based on probailities
+            accumulated_probability = 0.0
+            rand_value = rand.uniform(0, 1)
+            for i in range(len(visit_probabilities)):
+                accumulated_probability += visit_probabilities[i]
+                if accumulated_probability > rand_value:
+                    return i
+            return len(visit_probabilities) - 1
 
 class AntColony:
     def __init__(self, problem):
@@ -126,9 +140,10 @@ class AntColony:
             self.ants.append(Ant(self.problem))
 
     def solve_problem(self):
+        starting_city = 0
         for i in range(0, NUMBER_OF_ITERATIONS):
             for ant in self.ants:
-                ant.tour_map(0)
+                ant.tour_map(starting_city, i)
             self.update_pheromones()
             self.save_best_tour()
             self.initialize_colony()

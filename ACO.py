@@ -101,19 +101,19 @@ class AntColony:
         self.initialize_colony()
     
     def initialize_colony(self):
-        # make all ants and add them to list...number of limits based on problem (i.e, num of cities?)
-        # initialize the ants?
-        self.ants.append(Ant(self.problem))
+        # add one ant to colony per city in map
+        for i in range (0, len(problem.map)):
+            self.ants.append(Ant(self.problem))
 
     def solve_problem(self):
         for i in range(0, NUMBER_OF_ITERATIONS):
             for ant in self.ants:
                 ant.tour_map()
             self.update_pheromones()
-            self.find_best_tour()
+            self.save_best_tour()
         return self.best_tour
     
-    def find_best_tour(self):
+    def save_best_tour(self):
         for ant in self.ants:
             if self.best_tour is None:
                 self.best_tour = (ant.visited_cities, ant.tour_length)
@@ -121,8 +121,24 @@ class AntColony:
                 self.best_tour = (ant.visited_cities, ant.tour_length)
 
     def update_pheromones(self):
-    
-        return 1
+        pheromone_trails = problem.pheromone_trails
+        # reduce pheromone levels on all edges base give constant evaporation rate
+        for i in range(0, len(pheromone_trails)):
+            for j in range(0, pheromone_trails[0]):
+                pheromone_trails[i][j] = pheromone_trails[i][j] * EVAPORATION_RATE
+        # place each ant's pheromone on the edges it traveled in its touor
+        for ant in self.ants:
+            # calculate how much pheromone this ant places on each edge
+            pheromone_amount = Q / ant.tour_length
+            for i in range(0, len(ant.visited_cities)):
+                city_id = ant.visited_cities[i]
+                if not i == len(ant.visited_cities) - 1:
+                    # put pheromone on edge between current city and next city
+                    next_city_id = ant.visited_cities[i + 1]
+                else:
+                    # this is last city in tour-leave pheromone between this city and start
+                    next_city_id = ant.visited_cities[0]
+                pheromone_trails[city_id][next_city_id] = pheromone_trails[city_id][next_city_id] + pheromone_amount
 
 class Problem:
     def __init__(self, num_cities):

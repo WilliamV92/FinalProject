@@ -57,9 +57,7 @@ class Ant:
         return not city_id not in self.visited_cities
 
     def update_tour_length(self, current_city_id, city_id):
-        distance = 0
-        # calculate distane from current_city_id to city_id
-        return self.tour_length + distance
+        self.tour_length += self.problem.distance_matrix[current_city_id][city_id]
     
     def tour_map(self, start_city_id):
         # we need something that if its the first iteration, we make them all start off in random directions
@@ -123,15 +121,18 @@ class AntColony:
     
     def initialize_colony(self):
         # add one ant to colony per city in map
+        self.ants = []
         for i in range (0, self.problem.num_cities):
             self.ants.append(Ant(self.problem))
 
     def solve_problem(self):
         for i in range(0, NUMBER_OF_ITERATIONS):
             for ant in self.ants:
-                ant.tour_map()
+                ant.tour_map(0)
             self.update_pheromones()
             self.save_best_tour()
+            self.initialize_colony()
+            print(self.best_tour)
         return self.best_tour
     
     def save_best_tour(self):

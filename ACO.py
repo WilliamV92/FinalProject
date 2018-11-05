@@ -1,6 +1,13 @@
 import random as rand
 import math as math
 
+# ACO Parameters to tune algorithm performance
+ALPHA = 1.1 # the importance of pheromene (Tij) in choosing next city
+BETA = 4 # the importance of cost (Nij) in chosing next city
+EVAPORATION_RATE = 0.25 # the rate at which pheromene evaporates from trail
+Q = 100 # the total amount of pheromoene left on a trail by an ant
+NUMBER_OF_ITERATIONS = 10 # the number of iterations to let ants explore map
+
 class Map:
     def __init__(self, city_count):
         self.city_count = city_count
@@ -113,30 +120,44 @@ class AntColony:
         self.initialize_colony()
     
     def initialize_colony(self):
-        # make all ants and add them to list...number of limits based on problem (i.e, num of cities?)
-        # initialize the ants?
-        self.ants.append(Ant(self.problem))
+        # add one ant to colony per city in map
+        for i in range (0, len(problem.map)):
+            self.ants.append(Ant(self.problem))
 
     def solve_problem(self):
-        # psuedocode for AC0
-        # for i in range(0, num_iterations):
-        #       for k in range(0, num_ants):
-        #           ant.solve_problem()
-        #       update_pheromenes()
+        for i in range(0, NUMBER_OF_ITERATIONS):
+            for ant in self.ants:
+                ant.tour_map()
+            self.update_pheromones()
+            self.save_best_tour()
         return self.best_tour
+    
+    def save_best_tour(self):
+        for ant in self.ants:
+            if self.best_tour is None:
+                self.best_tour = (ant.visited_cities, ant.tour_length)
+            elif ant.tour_length < self.best_tour[1]:
+                self.best_tour = (ant.visited_cities, ant.tour_length)
 
-# colony:
-    # list of ants
-    # best tour found
-    # update pheromenes():
-        # updates pheromone values on each edge
-
-    # solve_problem:
-        # def ANTS_SOLVE: 
-        #   for i in range(0, num_iterations):
-        #       for k in range(0, num_ants):
-        #           ant.solve_problem()
-        #       update_pheromenes()
+    def update_pheromones(self):
+        pheromone_trails = self.problem.pheromone_trails
+        # reduce pheromone levels on all edges base give constant evaporation rate
+        for i in range(0, len(pheromone_trails)):
+            for j in range(0, pheromone_trails[0]):
+                pheromone_trails[i][j] = pheromone_trails[i][j] * EVAPORATION_RATE
+        # place each ant's pheromone on the edges it traveled in its touor
+        for ant in self.ants:
+            # calculate how much pheromone this ant places on each edge
+            pheromone_amount = Q / ant.tour_length
+            for i in range(0, len(ant.visited_cities)):
+                city_id = ant.visited_cities[i]
+                if not i == len(ant.visited_cities) - 1:
+                    # put pheromone on edge between current city and next city
+                    next_city_id = ant.visited_cities[i + 1]
+                else:
+                    # this is last city in tour-leave pheromone between this city and start
+                    next_city_id = ant.visited_cities[0]
+                pheromone_trails[city_id][next_city_id] = pheromone_trails[city_id][next_city_id] + pheromone_amount
 
 class Problem:
     def __init__(self, num_cities):

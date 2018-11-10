@@ -12,6 +12,8 @@ NUMBER_OF_ITERATIONS = 10 # the number of iterations to let ants explore map
 BASE_RANDOM_CHOICE_RATE = 0.3 # base rate at which ants will pick a random city (decreases with each iteration)
 DISPLAY_WIDTH = 600
 DISPLAY_HEIGHT = 800
+drawn_lines = []
+drawn_lines2 = []
 win = GraphWin(title="ACO", width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
 win2 = GraphWin(title="Nearest Neighbor", width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
 
@@ -157,11 +159,13 @@ class AntColony:
 
     def solve_problem(self):
         for i in range(0, NUMBER_OF_ITERATIONS):
+            fade_lines()
             for ant in self.ants:
                 ant.tour_map(i)
             self.update_pheromones()
             self.save_best_tour()
             self.initialize_colony()
+            draw_solution(self.best_tour[0], self.problem.map.cities, win)
             print(self.best_tour)
         return self.best_tour
     
@@ -195,6 +199,7 @@ class Problem:
         self.distance_matrix = []
         self.pheromone_trails = []
         self.start_city_id = None
+        self.blocked_edges = []
         self.initialize()
     
     def initialize(self):
@@ -286,7 +291,21 @@ def draw_solution(tour, city_map, canvas):
         line = Line(Point(city1.x, city1.y), Point(city2.x, city2.y))
         line.setFill('black')
         line.setOutline('black')
+        line.setWidth(2)
         line.draw(canvas)
+        drawn_lines.append(line)
+        time.sleep(.25)
+
+def fade_lines():
+    global drawn_lines
+    global drawn_lines2
+    for line in drawn_lines2:
+        line.undraw()
+    for line in drawn_lines:
+        line.setFill('grey')
+        line.setOutline('grey')
+    drawn_lines2 = drawn_lines.copy()
+    drawn_lines.clear()
 
 def main():
     # generate problem with 10 cities
@@ -298,8 +317,6 @@ def main():
     colony = AntColony(problem)
     # solve problem with colony
     print(colony.solve_problem())
-    # Draw Solution
-    draw_solution(colony.best_tour[0], problem.map.cities, win)
     # solve with nearest neighbor
     baseline_solver = NearestNeighborSolver(problem)
     print("Nearest Neighbor Solution: ")

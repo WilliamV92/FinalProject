@@ -1,5 +1,7 @@
 import random as rand
 import math as math
+import sys
+from graphics import *
 
 # ACO Parameters to tune algorithm performance
 ALPHA = 0.25 # the importance of pheromene (Tij) in choosing next city
@@ -8,6 +10,10 @@ EVAPORATION_RATE = 0.25 # the rate at which pheromene evaporates from trail
 Q = 100 # the total amount of pheromoene left on a trail by an ant
 NUMBER_OF_ITERATIONS = 10 # the number of iterations to let ants explore map
 BASE_RANDOM_CHOICE_RATE = 0.3 # base rate at which ants will pick a random city (decreases with each iteration)
+DISPLAY_WIDTH = 600
+DISPLAY_HEIGHT = 800
+win = GraphWin(title="ACO", width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
+win2 = GraphWin(title="Nearest Neighbor", width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
 
 class Map:
     def __init__(self, city_count):
@@ -19,18 +25,19 @@ class Map:
         cities = {}
         existing_cities = set()
         while len(existing_cities) != self.city_count:
-            x = rand.randint(0, 100)
-            y = rand.randint(0, 100)
+            x = rand.randint(50, DISPLAY_WIDTH - 50)
+            y = rand.randint(50, DISPLAY_HEIGHT - 50)
             existing_cities.add((x, y))
         for i in range(len(existing_cities)):
-            cities[i] = City(existing_cities.pop(), i)
+            new_city = City(existing_cities.pop(), i)
+            cities[i] = new_city
         return cities
 
     def display_cities(self):
         for city in self.cities:
             print(self.cities[city])
 
-class City:
+class City():
     def __init__(self, coords, id):
         self.x = coords[0]
         self.y = coords[1]
@@ -41,8 +48,8 @@ class City:
         return("ID: {0} X: {1} Y: {2}".format(self.id, self.x, self.y))
 
 
-new_map = Map(10)
-new_map.display_cities()
+# new_map = Map(10)
+# new_map.display_cities()
 
 
 class Ant:
@@ -244,7 +251,7 @@ class NearestNeighborSolver:
         # when I have visited final city, go back to start, and update tour length?
         self.visit_city(self.problem.start_city_id)
         self.update_tour_length(current_city_id, self.problem.start_city_id)
-        return str(self.visited_cities) + " - " + str(self.tour_length)
+        return (self.visited_cities, self.tour_length)
     
     def choose_nearest_neighbor(self, current_city_id):
         neighbor_distances = self.problem.distance_matrix[current_city_id]
@@ -258,18 +265,51 @@ class NearestNeighborSolver:
         # return id of first neighbor in list
         return sorted_neighbors[0][0]
 
+def draw_map(problem, canvas):
+    city_map = problem.map.cities
+    for city_id in city_map:
+        city = city_map[city_id]
+        pt = Point(city.x, city.y)
+        cir = Circle(pt, 25)
+        cir.draw(canvas)
+        if city_id == problem.start_city_id:
+            color = 'blue'
+        else:
+            color = 'red'
+        cir.setOutline(color)
+        cir.setFill(color)
+
+def draw_solution(tour, city_map, canvas):
+    for i in range(0, len(tour) - 1):
+        city1 = city_map[tour[i]]
+        city2 = city_map[tour[i + 1]]
+        line = Line(Point(city1.x, city1.y), Point(city2.x, city2.y))
+        line.setFill('black')
+        line.setOutline('black')
+        line.draw(canvas)
 
 def main():
     # generate problem with 10 cities
     problem = Problem(20)
+    # Draw Cities
+    draw_map(problem, win)
+    draw_map(problem, win2)
     # create colony and give it the problem
     colony = AntColony(problem)
     # solve problem with colony
     print(colony.solve_problem())
+    # Draw Solution
+    draw_solution(colony.best_tour[0], problem.map.cities, win)
     # solve with nearest neighbor
     baseline_solver = NearestNeighborSolver(problem)
     print("Nearest Neighbor Solution: ")
-    print(baseline_solver.solve())
+    NNReturn = baseline_solver.solve()
+    print(NNReturn[1])
+    ##############################################
+    draw_solution(NNReturn[0], problem.map.cities, win2)
+    ##############################################
+    win.getMouse()
+    win.close()
 
 
 main()

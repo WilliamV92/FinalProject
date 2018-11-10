@@ -2,8 +2,8 @@ import random as rand
 import math as math
 
 # ACO Parameters to tune algorithm performance
-ALPHA = 1.1 # the importance of pheromene (Tij) in choosing next city
-BETA = 4 # the importance of cost (Nij) in chosing next city
+ALPHA = 0.25 # the importance of pheromene (Tij) in choosing next city
+BETA = 5.0 # the importance of cost (Nij) in chosing next city
 EVAPORATION_RATE = 0.25 # the rate at which pheromene evaporates from trail
 Q = 100 # the total amount of pheromoene left on a trail by an ant
 NUMBER_OF_ITERATIONS = 10 # the number of iterations to let ants explore map
@@ -60,12 +60,12 @@ class Ant:
     def update_tour_length(self, current_city_id, city_id):
         self.tour_length += self.problem.distance_matrix[current_city_id][city_id]
     
-    def tour_map(self, start_city_id, iteration):
+    def tour_map(self, iteration):
         # we need something that if its the first iteration, we make them all start off in random directions
         # because we have no pheromone values yet...so we don't want them all just doing them same thing
         # by basically doing a shortest path algorithm...
-        current_city_id = start_city_id
-        self.visit_city(start_city_id)
+        current_city_id = self.problem.start_city_id
+        self.visit_city(self.problem.start_city_id)
         for i in range(0, self.problem.num_cities - 1):
             # determine probability to travel to each city from current city
             visit_probailities = self.calculate_probabilities(current_city_id)
@@ -76,30 +76,29 @@ class Ant:
             self.update_tour_length(current_city_id, next_city_id)
             current_city_id = next_city_id
         # when I have visited final city, go back to start, and update tour length?
-        self.visit_city(start_city_id)
-        self.update_tour_length(current_city_id, start_city_id)
+        self.visit_city(self.problem.start_city_id)
+        self.update_tour_length(current_city_id, self.problem.start_city_id)
     
     def calculate_probabilities(self, current_city_id):
         # at index 0 is the probability for visiting city with id 0
         visit_probabilities = []
-        trail_contributions = []
+        edge_scores = []
         pheromone_total = 0.0
         for i in range(self.problem.num_cities):
             if i not in self.visited_cities and i != current_city_id:
                 edge_pheromone = math.pow(self.problem.pheromone_trails[current_city_id][i], ALPHA)
                 edge_cost = math.pow(1.0 / self.problem.distance_matrix[current_city_id][i], BETA)
-                # this calculation is used below as well
-                # storing it in an array for later use
-                trail_contributions.append(edge_pheromone * edge_cost)
-                pheromone_total += trail_contributions[i]
+                # this calculation is used below as well. saving for later use
+                edge_scores.append(edge_pheromone * edge_cost)
+                pheromone_total += edge_scores[i]
             else:
-                trail_contributions.append(0)
+                edge_scores.append(0)
 
         for i in range(self.problem.num_cities):
             if(i in self.visited_cities):
                 visit_probabilities.append(0)
             else:
-                visit_probabilities.append(trail_contributions[i] / pheromone_total)
+                visit_probabilities.append(edge_scores[i] / pheromone_total)
         return visit_probabilities
     
     # ant's decision logic for choosing next city. The ant will either choice the next
@@ -150,10 +149,9 @@ class AntColony:
             self.ants.append(Ant(self.problem))
 
     def solve_problem(self):
-        starting_city = 0
         for i in range(0, NUMBER_OF_ITERATIONS):
             for ant in self.ants:
-                ant.tour_map(starting_city, i)
+                ant.tour_map(i)
             self.update_pheromones()
             self.save_best_tour()
             self.initialize_colony()
@@ -189,6 +187,7 @@ class Problem:
         self.num_cities = num_cities
         self.distance_matrix = []
         self.pheromone_trails = []
+        self.start_city_id = None
         self.initialize()
     
     def initialize(self):
@@ -214,14 +213,63 @@ class Problem:
             for j in range(self.num_cities):
                 temp_trail.append(1)
             self.pheromone_trails.append(temp_trail)
+        # randomly pick starting city
+        self.start_city_id = rand.randint(0, self.num_cities - 1)
+
+class NearestNeighborSolver:
+    def __init__(self, problem):
+        self.problem = problem
+        self.visited_cities = []
+        self.tour_length = 0
+
+    def visit_city(self, city_id):
+        self.visited_cities.append(city_id)
+    
+    def has_visited(self, city_id):
+        return not city_id not in self.visited_cities
+
+    def update_tour_length(self, current_city_id, city_id):
+        self.tour_length += self.problem.distance_matrix[current_city_id][city_id]
+    
+    def solve(self):
+        current_city_id = self.problem.start_city_id
+        self.visit_city(self.problem.start_city_id)
+        for i in range(0, self.problem.num_cities - 1):
+            # choose next city to visit
+            next_city_id = self.choose_nearest_neighbor(current_city_id)
+            # visit city and update trail length
+            self.visit_city(next_city_id)
+            self.update_tour_length(current_city_id, next_city_id)
+            current_city_id = next_city_id
+        # when I have visited final city, go back to start, and update tour length?
+        self.visit_city(self.problem.start_city_id)
+        self.update_tour_length(current_city_id, self.problem.start_city_id)
+        return str(self.visited_cities) + " - " + str(self.tour_length)
+    
+    def choose_nearest_neighbor(self, current_city_id):
+        neighbor_distances = self.problem.distance_matrix[current_city_id]
+        # array holding tuples of unvisited cities (city_id, distance to city)
+        unvisited_distances = []
+        for i in range(0, len(neighbor_distances)):
+            if not self.has_visited(i):
+                unvisited_distances.append((i, neighbor_distances[i]))
+        # sort unvisited neighbors by distance
+        sorted_neighbors = sorted(unvisited_distances, key=lambda x: x[1])
+        # return id of first neighbor in list
+        return sorted_neighbors[0][0]
+
 
 def main():
     # generate problem with 10 cities
-    problem = Problem(10)
+    problem = Problem(20)
     # create colony and give it the problem
     colony = AntColony(problem)
     # solve problem with colony
     print(colony.solve_problem())
+    # solve with nearest neighbor
+    baseline_solver = NearestNeighborSolver(problem)
+    print("Nearest Neighbor Solution: ")
+    print(baseline_solver.solve())
 
 
 main()

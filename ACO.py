@@ -102,6 +102,8 @@ class Ant:
                 visit_probabilities.append(trail_contributions[i] / pheromone_total)
         return visit_probabilities
     
+    # ant's decision logic for choosing next city. The ant will either choice the next
+    # city to visit randomly or based on the probabilities matrix returned by calculate_probailities 
     def choose_next_city(self, visit_probabilities, iteration):
         # ant should pick a random city in some cases, especially early on, to make sure we explore
         # the search space. decrease rate of random choice over time
@@ -109,22 +111,30 @@ class Ant:
         random_choice_rate = BASE_RANDOM_CHOICE_RATE / (iteration + 1)
         if (iteration == 0 and len(self.visited_cities) == 1) or rand_choice < random_choice_rate:
             # also random choice for first move from starting city on the first iteration...
-            choice = None
-            while choice is None:
-                # pick a random city and check if ant hasn't visited yet
-                choice = rand.randint(0, self.problem.num_cities - 1)
-                if self.has_visited(choice):
-                    choice = None
-            return choice
+            return self.choose_next_city_random()
         else:
             # make choice of which city to visit based on probailities
-            accumulated_probability = 0.0
-            rand_value = rand.uniform(0, 1)
-            for i in range(len(visit_probabilities)):
-                accumulated_probability += visit_probabilities[i]
-                if accumulated_probability > rand_value:
-                    return i
-            return len(visit_probabilities) - 1
+            return self.choose_next_city_probabilistic(visit_probabilities)
+    
+    # choose next city best on probaility caclulations (i.e., pheromone trails and cost)
+    def choose_next_city_probabilistic(self, visit_probabilities):
+        accumulated_probability = 0.0
+        rand_value = rand.uniform(0, 1)
+        for i in range(len(visit_probabilities)):
+            accumulated_probability += visit_probabilities[i]
+            if accumulated_probability > rand_value:
+                return i
+        return len(visit_probabilities) - 1
+
+    # choose next city to visit randomly
+    def choose_next_city_random(self):
+        choice = None
+        while choice is None:
+            # pick a random city and check if ant hasn't visited yet
+            choice = rand.randint(0, self.problem.num_cities - 1)
+            if self.has_visited(choice):
+                choice = None
+        return choice
 
 class AntColony:
     def __init__(self, problem):

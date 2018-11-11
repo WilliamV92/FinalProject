@@ -12,21 +12,23 @@ NUMBER_OF_ITERATIONS = 10 # the number of iterations to let ants explore map
 BASE_RANDOM_CHOICE_RATE = 0.3 # base rate at which ants will pick a random city (decreases with each iteration)
 # Obstacle (i.e., Disaster) Parameters
 DISASTER_RATE = 0.2
-DISASTER_MODE = True
-# UI Controls
+DISASTER_MODE = False
+# Delivery Parameters
+TRUCK_CAPACITY = 10 # how many units a truck can hold
+MAX_CITY_NEED = TRUCK_CAPACITY * 0.5 # the max need in units a particular city can have
+# UI 
 DISPLAY_WIDTH = 600
 DISPLAY_HEIGHT = 800
 drawn_lines = []
 drawn_lines2 = []
-message = None
 win = GraphWin(title="ACO", width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
 win2 = GraphWin(title="Nearest Neighbor", width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
 
 class Map:
-    def __init__(self, city_count):
+    def __init__(self, city_count, max_city_need):
         self.city_count = city_count
+        self.max_city_need = max_city_need
         self.cities = self.generate_cities()
-
     
     def generate_cities(self):
         cities = {}
@@ -36,32 +38,50 @@ class Map:
             y = rand.randint(50, DISPLAY_HEIGHT - 50)
             existing_cities.add((x, y))
         for i in range(len(existing_cities)):
-            new_city = City(existing_cities.pop(), i)
+            city_need = rand.randint(1, self.max_city_need)
+            new_city = City(existing_cities.pop(), i, city_need)
             cities[i] = new_city
         return cities
+
+    def get_city_need(self, city_id):
+        return self.cities[city_id].need
 
     def display_cities(self):
         for city in self.cities:
             print(self.cities[city])
 
 class City():
-    def __init__(self, coords, id):
+    def __init__(self, coords, id, need):
         self.x = coords[0]
         self.y = coords[1]
+        self.need = need
         self.id = id
     def distance_from(self, city):
         return math.hypot(city.x - self.x, city.y -self.y)
     def __str__(self):
-        return("ID: {0} X: {1} Y: {2}".format(self.id, self.x, self.y))
+        return("ID: {0} X: {1} Y: {2} Need: {3}".format(self.id, self.x, self.y, self.need))
 
 class Ant:
     def __init__(self, problem):
         self.problem = problem
+        self.capacity = problem.truck_capacity
         self.visited_cities = []
+        self.visit_total = 0
         self.tour_length = 0
 
     def visit_city(self, city_id):
+        # keep track of how many of the cities any has visited
+        if city_id not in self.visited_cities:
+            self.visit_total += 1
+        # add city to tour
         self.visited_cities.append(city_id)
+        # drop off goods at city or pick up from depot
+        if city_id != self.problem.start_city_id:
+            # drop off goods at the city
+            self.capacity -= self.problem.map.get_city_need(city_id)
+        elif len(self.visited_cities) > 1:
+            # we are returning to the depot, fill the truck back to its capacity
+            self.capacity = self.problem.truck_capacity
     
     def has_visited(self, city_id):
         return not city_id not in self.visited_cities
@@ -75,11 +95,11 @@ class Ant:
         # by basically doing a shortest path algorithm...
         current_city_id = self.problem.start_city_id
         self.visit_city(self.problem.start_city_id)
-        for i in range(0, self.problem.num_cities - 1):
+        while self.visit_total < self.problem.num_cities:
             # determine probability to travel to each city from current city
             visit_probailities = self.calculate_probabilities(current_city_id)
             # choose next city to visit
-            next_city_id = self.choose_next_city(visit_probailities, iteration)
+            next_city_id = self.choose_next_delivery(current_city_id, visit_probailities, iteration)
             # visit city and update trail length
             self.visit_city(next_city_id)
             self.update_tour_length(current_city_id, next_city_id)
@@ -110,6 +130,17 @@ class Ant:
             else:
                 visit_probabilities.append(edge_scores[i] / pheromone_total)
         return visit_probabilities
+
+    def choose_next_delivery(self, current_city_id, visit_probabilities, iteration):
+         # determine next city to visit based on normal distance minimization logic
+        next_city_id = self.choose_next_city(visit_probabilities, iteration)
+        # check if ant has capacity to deliver to this city, if not, return to depot
+        if self.capacity >= self.problem.map.get_city_need(next_city_id):
+            # deliver to city
+            return next_city_id
+        else:
+            # decide whether to go back to depot or find another city to deliver to
+            return self.find_viable_close_city(current_city_id, visit_probabilities)
     
     # ant's decision logic for choosing next city. The ant will either choice the next
     # city to visit randomly or based on the probabilities matrix returned by calculate_probailities 
@@ -144,6 +175,27 @@ class Ant:
             if self.has_visited(choice):
                 choice = None
         return choice
+    
+    def find_viable_close_city(self, current_city_id, visit_probabilities):
+        # get distances from current_city to all other cities
+        neighbor_distances = self.problem.distance_matrix[current_city_id]
+        # array holding tuples of unvisited cities (city_id, distance to city)
+        unvisited_distances = []
+        for i in range(0, len(neighbor_distances)):
+            if not self.has_visited(i):
+                unvisited_distances.append((i, neighbor_distances[i]))
+        # sort unvisited neighbors by distance
+        sorted_neighbors = sorted(unvisited_distances, key=lambda x: x[1])
+        # get distance from current depot to city
+        distance_to_depot = self.problem.distance_matrix[current_city_id][self.problem.start_city_id]
+        for i in range(0, len(sorted_neighbors)):
+            option = sorted_neighbors[i]
+            if option[1] <= distance_to_depot and self.capacity >= self.problem.map.get_city_need(option[0]):
+                # found a city that is closer to current city than depot and
+                # truck has the capacity currently to deliver to it
+                return option[0]
+        # no option was found better than returning to the depot itself
+        return self.problem.start_city_id
 
 class AntColony:
     def __init__(self, problem):
@@ -167,13 +219,13 @@ class AntColony:
                 was_disaster = self.problem.generate_disaster(i, self.best_tour)
                 if was_disaster:
                     self.best_tour = None
-                    NUMBER_OF_ITERATIONS += 5              
+                    NUMBER_OF_ITERATIONS += 5             
             for ant in self.ants:
                 ant.tour_map(i)
             self.update_pheromones()
             self.save_best_tour()
             self.initialize_colony()
-            draw_solution(self.best_tour, self.problem.map.cities, win)
+            draw_solution(self.best_tour[0], self.problem.map.cities, win)
             i += 1
             print(self.best_tour)
         return self.best_tour
@@ -202,13 +254,16 @@ class AntColony:
                 pheromone_trails[city_id][next_city_id] = pheromone_trails[city_id][next_city_id] + pheromone_amount
 
 class Problem:
-    def __init__(self, num_cities):
-        self.map = Map(num_cities)
+    def __init__(self, num_cities, truck_capcity, max_city_need):
+        self.map = Map(num_cities, max_city_need)
         self.num_cities = num_cities
+        self.truck_capacity = truck_capcity
+        self.max_city_need = max_city_need
         self.distance_matrix = []
         self.pheromone_trails = []
         self.blocked_edges = []
         self.start_city_id = None
+        self.blocked_edges = []
         self.initialize()
     
     def initialize(self):
@@ -234,8 +289,9 @@ class Problem:
             for j in range(self.num_cities):
                 temp_trail.append(1)
             self.pheromone_trails.append(temp_trail)
-        # randomly pick starting city
+        # randomly pick starting city (depot)
         self.start_city_id = rand.randint(0, self.num_cities - 1)
+        self.map.cities[self.start_city_id].need = 0
     
     def generate_disaster(self, iteration, current_path):
         was_disaster = False
@@ -249,9 +305,6 @@ class Problem:
             self.blocked_edges.append((city1_id, city2_id))
             print("disaster: " + str(city1_id) + " " + str(city2_id))
             # increase distance score between city1 to city2 to indicate it is impassibe
-            # when generating disaster, setting distance to maxsize instead of inf
-            # setting to inf was causing the program to enter a state where
-            # it had one city left but was unable to travel there due to impassible edge
             self.distance_matrix[city1_id][city2_id] = sys.maxsize
             self.distance_matrix[city2_id][city1_id] = sys.maxsize
             was_disaster = True
@@ -270,11 +323,24 @@ class Problem:
 class NearestNeighborSolver:
     def __init__(self, problem):
         self.problem = problem
+        self.capacity = problem.truck_capacity
+        self.visit_total = 0
         self.visited_cities = []
         self.tour_length = 0
 
     def visit_city(self, city_id):
+         # keep track of how many of the cities any has visited
+        if city_id not in self.visited_cities:
+            self.visit_total += 1
+        # add city to tour
         self.visited_cities.append(city_id)
+        # drop off goods at city or pick up from depot
+        if city_id != self.problem.start_city_id:
+            # drop off goods at the city
+            self.capacity -= self.problem.map.get_city_need(city_id)
+        elif len(self.visited_cities) > 1:
+            # we are returning to the depot, fill the truck back to its capacity
+            self.capacity = self.problem.truck_capacity
     
     def has_visited(self, city_id):
         return not city_id not in self.visited_cities
@@ -285,9 +351,9 @@ class NearestNeighborSolver:
     def solve(self):
         current_city_id = self.problem.start_city_id
         self.visit_city(self.problem.start_city_id)
-        for i in range(0, self.problem.num_cities - 1):
+        while self.visit_total < self.problem.num_cities:
             # choose next city to visit
-            next_city_id = self.choose_nearest_neighbor(current_city_id)
+            next_city_id = self.choose_next_delivery(current_city_id)
             # visit city and update trail length
             self.visit_city(next_city_id)
             self.update_tour_length(current_city_id, next_city_id)
@@ -297,6 +363,15 @@ class NearestNeighborSolver:
         self.update_tour_length(current_city_id, self.problem.start_city_id)
         return (self.visited_cities, self.tour_length)
     
+    def choose_next_delivery(self, current_city_id):
+        nearest_neighbor = self.choose_nearest_neighbor(current_city_id)
+        if self.capacity >= self.problem.map.get_city_need(nearest_neighbor):
+            # deliver to city
+            return nearest_neighbor
+        else:
+            # decide whether to go back to depot or find another city to deliver to
+            return self.problem.start_city_id
+
     def choose_nearest_neighbor(self, current_city_id):
         neighbor_distances = self.problem.distance_matrix[current_city_id]
         # array holding tuples of unvisited cities (city_id, distance to city)
@@ -329,19 +404,9 @@ def draw_map(problem, canvas):
         inc += 1
 
 def draw_solution(tour, city_map, canvas):
-    global message
-    path = tour[0]
-    if type(message) == Text:
-        message.undraw()
-    message = Text(Point(canvas.getWidth() / 2, 20), "Path: {0} Cost: {1:.0f}".format(tour[0], tour[1]))
-    message.draw(canvas)
-    chkMouse = canvas.checkMouse()
-    getMouse = None
-    for i in range(0, len(path) - 1):
-        while(chkMouse != None and getMouse == None):
-            getMouse = canvas.getMouse()
-        city1 = city_map[path[i]]
-        city2 = city_map[path[i + 1]]
+    for i in range(0, len(tour) - 1):
+        city1 = city_map[tour[i]]
+        city2 = city_map[tour[i + 1]]
         line = Line(Point(city1.x, city1.y), Point(city2.x, city2.y))
         line.setFill('black')
         line.setOutline('black')
@@ -349,8 +414,6 @@ def draw_solution(tour, city_map, canvas):
         line.draw(canvas)
         drawn_lines.append(line)
         time.sleep(.25)
-        chkMouse = canvas.checkMouse()
-        getMouse = None
 
 def fade_lines():
     global drawn_lines
@@ -374,7 +437,8 @@ def draw_blocked(city1, city2, city_map, canvas):
 
 def main():
     # generate problem with 10 cities
-    problem = Problem(20)
+    problem = Problem(20, TRUCK_CAPACITY, MAX_CITY_NEED)
+    problem.map.display_cities()
     # Draw Cities
     draw_map(problem, win)
     draw_map(problem, win2)
@@ -388,7 +452,7 @@ def main():
     NNReturn = baseline_solver.solve()
     print(NNReturn[1])
     ##############################################
-    draw_solution(NNReturn, problem.map.cities, win2)
+    draw_solution(NNReturn[0], problem.map.cities, win2)
     ##############################################
     win.getMouse()
     win.close()

@@ -94,7 +94,9 @@ class Ant:
         edge_scores = []
         pheromone_total = 0.0
         for i in range(self.problem.num_cities):
-            if i not in self.visited_cities and i != current_city_id:
+            # if city has been visited or the current city, visit probaility is zero.
+            # also, check if edge is impassible. if so, don't calculate it as an edge we can travel
+            if i not in self.visited_cities and i != current_city_id and self.problem.distance_matrix[current_city_id][i] != math.inf:
                 edge_pheromone = math.pow(self.problem.pheromone_trails[current_city_id][i], ALPHA)
                 edge_cost = math.pow(1.0 / self.problem.distance_matrix[current_city_id][i], BETA)
                 # this calculation is used below as well. saving for later use
@@ -104,7 +106,7 @@ class Ant:
                 edge_scores.append(0)
 
         for i in range(self.problem.num_cities):
-            if(i in self.visited_cities):
+            if edge_scores[i] == 0:
                 visit_probabilities.append(0)
             else:
                 visit_probabilities.append(edge_scores[i] / pheromone_total)
@@ -158,17 +160,23 @@ class AntColony:
             self.ants.append(Ant(self.problem))
 
     def solve_problem(self):
-        for i in range(0, NUMBER_OF_ITERATIONS):
+        global NUMBER_OF_ITERATIONS
+        i = 0
+        while i < NUMBER_OF_ITERATIONS:
             fade_lines()
+            was_disaster = self.problem.generate_disaster(i, self.best_tour)
+            if was_disaster:
+                NUMBER_OF_ITERATIONS += 5              
             for ant in self.ants:
                 ant.tour_map(i)
             self.update_pheromones()
             self.save_best_tour()
             self.initialize_colony()
             draw_solution(self.best_tour[0], self.problem.map.cities, win)
+            i += 1
             print(self.best_tour)
         return self.best_tour
-    
+
     def save_best_tour(self):
         for ant in self.ants:
             if self.best_tour is None:
@@ -198,6 +206,7 @@ class Problem:
         self.num_cities = num_cities
         self.distance_matrix = []
         self.pheromone_trails = []
+        self.blocked_edges = []
         self.start_city_id = None
         self.blocked_edges = []
         self.initialize()
@@ -227,6 +236,31 @@ class Problem:
             self.pheromone_trails.append(temp_trail)
         # randomly pick starting city
         self.start_city_id = rand.randint(0, self.num_cities - 1)
+    
+    def generate_disaster(self, iteration, current_path):
+        was_disaster = False
+        # determine if there should be a random disaster
+        if self.is_disaster(iteration):
+            current_path = current_path[0]
+            # determine edge between two cities in current path to block
+            rand_index = rand.randint(0, len(current_path) - 2)
+            city1_id = current_path[rand_index]
+            city2_id = current_path[rand_index + 1]
+            print("disaster: " + str(city1_id) + " " + str(city2_id))
+            # increase distance score between city1 to city2 to indicate it is impassibe
+            self.distance_matrix[city1_id][city2_id] = math.inf
+            self.distance_matrix[city2_id][city1_id] = math.inf
+            was_disaster = True
+        return was_disaster
+
+    def is_disaster(self, iteration):
+        disaster = False
+        DISASTER_RATE = 0.2
+        if iteration > 2:
+            rand_num = rand.uniform(0, 1)
+            if rand_num < DISASTER_RATE:
+                disaster = True
+        return disaster
 
 class NearestNeighborSolver:
     def __init__(self, problem):

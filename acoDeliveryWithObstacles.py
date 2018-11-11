@@ -10,6 +10,9 @@ EVAPORATION_RATE = 0.25 # the rate at which pheromene evaporates from trail
 Q = 100 # the total amount of pheromoene left on a trail by an ant
 NUMBER_OF_ITERATIONS = 10 # the number of iterations to let ants explore map
 BASE_RANDOM_CHOICE_RATE = 0.3 # base rate at which ants will pick a random city (decreases with each iteration)
+# Obstacle (i.e., Disaster) Parameters
+DISASTER_RATE = 0.2
+DISASTER_MODE = False
 # Delivery Parameters
 TRUCK_CAPACITY = 10 # how many units a truck can hold
 MAX_CITY_NEED = TRUCK_CAPACITY * 0.5 # the max need in units a particular city can have
@@ -212,10 +215,11 @@ class AntColony:
         i = 0
         while i < NUMBER_OF_ITERATIONS:
             fade_lines()
-            was_disaster = self.problem.generate_disaster(i, self.best_tour)
-            if was_disaster:
-                self.best_tour = None
-                NUMBER_OF_ITERATIONS += 5              
+            if DISASTER_MODE:
+                was_disaster = self.problem.generate_disaster(i, self.best_tour)
+                if was_disaster:
+                    self.best_tour = None
+                    NUMBER_OF_ITERATIONS += 5             
             for ant in self.ants:
                 ant.tour_map(i)
             self.update_pheromones()
@@ -310,7 +314,6 @@ class Problem:
 
     def is_disaster(self, iteration):
         disaster = False
-        DISASTER_RATE = 0.2
         if iteration > 2 and len(self.blocked_edges) < self.num_cities * 0.2:
             rand_num = rand.uniform(0, 1)
             if rand_num < DISASTER_RATE:

@@ -95,8 +95,7 @@ class Ant:
         pheromone_total = 0.0
         for i in range(self.problem.num_cities):
             # if city has been visited or the current city, visit probaility is zero.
-            # also, check if edge is impassible. if so, don't calculate it as an edge we can travel
-            if i not in self.visited_cities and i != current_city_id and self.problem.distance_matrix[current_city_id][i] != math.inf:
+            if i not in self.visited_cities and i != current_city_id:
                 edge_pheromone = math.pow(self.problem.pheromone_trails[current_city_id][i], ALPHA)
                 edge_cost = math.pow(1.0 / self.problem.distance_matrix[current_city_id][i], BETA)
                 # this calculation is used below as well. saving for later use
@@ -132,9 +131,9 @@ class Ant:
         rand_value = rand.uniform(0, 1)
         for i in range(len(visit_probabilities)):
             accumulated_probability += visit_probabilities[i]
-            if accumulated_probability > rand_value:
+            if accumulated_probability >= rand_value:
                 return i
-        return len(visit_probabilities) - 1
+        return self.choose_next_city_random()
 
     # choose next city to visit randomly
     def choose_next_city_random(self):
@@ -209,7 +208,6 @@ class Problem:
         self.pheromone_trails = []
         self.blocked_edges = []
         self.start_city_id = None
-        self.blocked_edges = []
         self.initialize()
     
     def initialize(self):
@@ -250,9 +248,14 @@ class Problem:
             self.blocked_edges.append((city1_id, city2_id))
             print("disaster: " + str(city1_id) + " " + str(city2_id))
             # increase distance score between city1 to city2 to indicate it is impassibe
-            self.distance_matrix[city1_id][city2_id] = math.inf
-            self.distance_matrix[city2_id][city1_id] = math.inf
+            # when generating disaster, setting distance to maxsize instead of inf
+            # setting to inf was causing the program to enter a state where
+            # it had one city left but was unable to travel there due to impassible edge
+            self.distance_matrix[city1_id][city2_id] = sys.maxsize
+            self.distance_matrix[city2_id][city1_id] = sys.maxsize
             was_disaster = True
+            draw_blocked(city1_id, city2_id, self.map.cities, win)
+            draw_blocked(city1_id, city2_id, self.map.cities, win2)
         return was_disaster
 
     def is_disaster(self, iteration):
@@ -308,17 +311,22 @@ class NearestNeighborSolver:
 
 def draw_map(problem, canvas):
     city_map = problem.map.cities
+    inc = 0
     for city_id in city_map:
+        # message = Text()
         city = city_map[city_id]
         pt = Point(city.x, city.y)
         cir = Circle(pt, 25)
         cir.draw(canvas)
+        message = Text(pt, "{0}".format(inc))
+        message.draw(canvas)
         if city_id == problem.start_city_id:
             color = 'blue'
         else:
             color = 'red'
         cir.setOutline(color)
         cir.setFill(color)
+        inc += 1
 
 def draw_solution(tour, city_map, canvas):
     for i in range(0, len(tour) - 1):
@@ -342,6 +350,15 @@ def fade_lines():
         line.setOutline('grey')
     drawn_lines2 = drawn_lines.copy()
     drawn_lines.clear()
+
+def draw_blocked(city1, city2, city_map, canvas):
+    pt1 = city_map[city1]
+    pt2 = city_map[city2]
+    line = Line(Point(pt1.x, pt1.y), Point(pt2.x, pt2.y))
+    line.setFill('red')
+    line.setOutline('red')
+    line.setWidth(2)
+    line.draw(canvas)
 
 def main():
     # generate problem with 10 cities

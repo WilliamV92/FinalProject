@@ -166,6 +166,7 @@ class AntColony:
             fade_lines()
             was_disaster = self.problem.generate_disaster(i, self.best_tour)
             if was_disaster:
+                self.best_tour = None
                 NUMBER_OF_ITERATIONS += 5              
             for ant in self.ants:
                 ant.tour_map(i)
@@ -246,6 +247,7 @@ class Problem:
             rand_index = rand.randint(0, len(current_path) - 2)
             city1_id = current_path[rand_index]
             city2_id = current_path[rand_index + 1]
+            self.blocked_edges.append((city1_id, city2_id))
             print("disaster: " + str(city1_id) + " " + str(city2_id))
             # increase distance score between city1 to city2 to indicate it is impassibe
             self.distance_matrix[city1_id][city2_id] = math.inf
@@ -256,7 +258,7 @@ class Problem:
     def is_disaster(self, iteration):
         disaster = False
         DISASTER_RATE = 0.2
-        if iteration > 2:
+        if iteration > 2 and len(self.blocked_edges) < self.num_cities * 0.2:
             rand_num = rand.uniform(0, 1)
             if rand_num < DISASTER_RATE:
                 disaster = True

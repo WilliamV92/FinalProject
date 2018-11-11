@@ -255,6 +255,7 @@ class Problem:
             self.distance_matrix[city2_id][city1_id] = sys.maxsize
             was_disaster = True
             draw_blocked(city1_id, city2_id, self.map.cities, win)
+            draw_blocked(city1_id, city2_id, self.map.cities, win2)
         return was_disaster
 
     def is_disaster(self, iteration):

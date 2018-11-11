@@ -37,12 +37,21 @@ class Map:
         while len(existing_cities) != self.city_count:
             x = rand.randint(50, DISPLAY_WIDTH - 50)
             y = rand.randint(50, DISPLAY_HEIGHT - 50)
-            existing_cities.add((x, y))
+            if not self.check_if_nearby_city_exists(existing_cities, (x, y)):
+                existing_cities.add((x, y))
         for i in range(len(existing_cities)):
             city_need = rand.randint(1, self.max_city_need)
             new_city = City(existing_cities.pop(), i, city_need)
             cities[i] = new_city
         return cities
+    
+    def check_if_nearby_city_exists(self, existing_cities, coords):
+        nearby_exits = False
+        for city in existing_cities:
+            if math.hypot(city[0] - coords[0], city[1] - coords[1]) <= 50:
+                nearby_exits = True
+                break
+        return nearby_exits
 
     def get_city_need(self, city_id):
         return self.cities[city_id].need

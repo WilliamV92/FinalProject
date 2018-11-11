@@ -21,6 +21,7 @@ DISPLAY_WIDTH = 600
 DISPLAY_HEIGHT = 800
 drawn_lines = []
 drawn_lines2 = []
+message = None
 win = GraphWin(title="ACO", width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
 win2 = GraphWin(title="Nearest Neighbor", width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
 
@@ -225,7 +226,7 @@ class AntColony:
             self.update_pheromones()
             self.save_best_tour()
             self.initialize_colony()
-            draw_solution(self.best_tour[0], self.problem.map.cities, win)
+            draw_solution(self.best_tour, self.problem.map.cities, win, self.problem)
             i += 1
             print(self.best_tour)
         return self.best_tour
@@ -393,7 +394,7 @@ def draw_map(problem, canvas):
         pt = Point(city.x, city.y)
         cir = Circle(pt, 25)
         cir.draw(canvas)
-        message = Text(pt, "{0}".format(inc))
+        message = Text(pt, "{0}\n({1})".format(inc, city.need))
         message.draw(canvas)
         if city_id == problem.start_city_id:
             color = 'blue'
@@ -403,10 +404,20 @@ def draw_map(problem, canvas):
         cir.setFill(color)
         inc += 1
 
-def draw_solution(tour, city_map, canvas):
-    for i in range(0, len(tour) - 1):
-        city1 = city_map[tour[i]]
-        city2 = city_map[tour[i + 1]]
+def draw_solution(tour, city_map, canvas, problem):
+    global message
+    path = tour[0]
+    if type(message) == Text:
+        message.undraw()
+    message = Text(Point(canvas.getWidth() / 2, 20), "Path: {0}\nCost: {1:.0f}".format(tour[0], tour[1]))
+    message.draw(canvas)
+    chkMouse = canvas.checkMouse()
+    getMouse = None
+    for i in range(0, len(path) - 1):
+        while(chkMouse != None and getMouse == None):
+            getMouse = canvas.getMouse()
+        city1 = city_map[path[i]]
+        city2 = city_map[path[i + 1]]
         line = Line(Point(city1.x, city1.y), Point(city2.x, city2.y))
         line.setFill('black')
         line.setOutline('black')
@@ -414,6 +425,9 @@ def draw_solution(tour, city_map, canvas):
         line.draw(canvas)
         drawn_lines.append(line)
         time.sleep(.25)
+        chkMouse = canvas.checkMouse()
+        getMouse = None
+    draw_map(problem, canvas)
 
 def fade_lines():
     global drawn_lines
@@ -452,7 +466,7 @@ def main():
     NNReturn = baseline_solver.solve()
     print(NNReturn[1])
     ##############################################
-    draw_solution(NNReturn[0], problem.map.cities, win2)
+    draw_solution(NNReturn, problem.map.cities, win2, problem)
     ##############################################
     win.getMouse()
     win.close()

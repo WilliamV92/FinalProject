@@ -333,7 +333,7 @@ def draw_solution(tour, city_map, canvas):
     path = tour[0]
     if type(message) == Text:
         message.undraw()
-    message = Text(Point(canvas.getWidth() / 2, 20), "Path: {0} Cost: {1:.0f}".format(tour[0], tour[1]))
+    message = Text(Point(canvas.getWidth() / 2, 20), "Path: {0}\nCost: {1:.0f}".format(tour[0], tour[1]))
     message.draw(canvas)
     chkMouse = canvas.checkMouse()
     getMouse = None

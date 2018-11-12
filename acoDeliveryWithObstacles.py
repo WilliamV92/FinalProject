@@ -150,7 +150,13 @@ class Ant:
             return next_city_id
         else:
             # decide whether to go back to depot or find another city to deliver to
-            return self.find_viable_close_city(current_city_id, visit_probabilities)
+            rand_choice = rand.randint(0, 9)
+            if rand_choice < 5:
+                # find another city to deliver to
+                return self.find_viable_close_city(current_city_id, visit_probabilities)
+            else:
+                # just go back to the depot
+                return self.problem.start_city_id
     
     # ant's decision logic for choosing next city. The ant will either choice the next
     # city to visit randomly or based on the probabilities matrix returned by calculate_probailities 

@@ -16,14 +16,20 @@ DISASTER_MODE = False
 # Delivery Parameters
 TRUCK_CAPACITY = 10 # how many units a truck can hold
 MAX_CITY_NEED = TRUCK_CAPACITY * 0.5 # the max need in units a particular city can have
+# Main method parameter
+CITY_SIZE = [10, 15, 20, 25, 30]
+# SLEEP TIMER
+SLEEP_ENABLED = False
+SLEEP_VALUE = 0.25
 # UI 
+GUI_ENABLED = False
 DISPLAY_WIDTH = 600
 DISPLAY_HEIGHT = 800
 drawn_lines = []
 drawn_lines2 = []
 message = None
-win = GraphWin(title="ACO", width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
-win2 = GraphWin(title="Nearest Neighbor", width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
+win = None
+win2 = None
 
 class Map:
     def __init__(self, city_count, max_city_need):
@@ -230,7 +236,8 @@ class AntColony:
         global NUMBER_OF_ITERATIONS
         i = 0
         while i < NUMBER_OF_ITERATIONS:
-            fade_lines()
+            if GUI_ENABLED:
+                fade_lines()
             if DISASTER_MODE:
                 was_disaster = self.problem.generate_disaster(i, self.best_tour)
                 if was_disaster:
@@ -241,7 +248,8 @@ class AntColony:
             self.update_pheromones()
             self.save_best_tour()
             self.initialize_colony()
-            draw_solution(self.best_tour, self.problem.map.cities, win, self.problem)
+            if GUI_ENABLED:
+                draw_solution(self.best_tour, self.problem.map.cities, win, self.problem)
             i += 1
             print(self.best_tour)
         return self.best_tour
@@ -324,8 +332,9 @@ class Problem:
             self.distance_matrix[city1_id][city2_id] = sys.maxsize
             self.distance_matrix[city2_id][city1_id] = sys.maxsize
             was_disaster = True
-            draw_blocked(city1_id, city2_id, self.map.cities, win)
-            draw_blocked(city1_id, city2_id, self.map.cities, win2)
+            if GUI_ENABLED:
+                draw_blocked(city1_id, city2_id, self.map.cities, win)
+                draw_blocked(city1_id, city2_id, self.map.cities, win2)
         return was_disaster
 
     def is_disaster(self, iteration):
@@ -439,7 +448,8 @@ def draw_solution(tour, city_map, canvas, problem):
         line.setWidth(2)
         line.draw(canvas)
         drawn_lines.append(line)
-        time.sleep(.25)
+        if SLEEP_ENABLED:
+            time.sleep(SLEEP_VALUE)
         chkMouse = canvas.checkMouse()
         getMouse = None
     draw_map(problem, canvas)
@@ -464,30 +474,53 @@ def draw_blocked(city1, city2, city_map, canvas):
     line.setWidth(2)
     line.draw(canvas)
 
-def main():
-    # generate problem with 10 cities
-    problem = Problem(20, TRUCK_CAPACITY, MAX_CITY_NEED)
-    problem.map.display_cities()
-    # Draw Cities
-    draw_map(problem, win)
-    draw_map(problem, win2)
-    # create colony and give it the problem
-    colony = AntColony(problem)
-    # solve problem with colony
-    print(colony.solve_problem())
-    # solve with nearest neighbor
-    baseline_solver = NearestNeighborSolver(problem)
-    print("Nearest Neighbor Solution: ")
-    NNReturn = baseline_solver.solve()
-    print(NNReturn[1])
-    ##############################################
-    draw_solution(NNReturn, problem.map.cities, win2, problem)
-    ##############################################
-    win.getMouse()
-    win.close()
+def main(CITY_SIZE):
+    global win
+    global win2
+    ACOBest = []
+    NNBest = []
+    Relative_Improvement = []
+    for size in CITY_SIZE:
+        if GUI_ENABLED:
+            win = GraphWin(title="ACO", width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
+            win2 = GraphWin(title="Nearest Neighbor", width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
+        # generate problem with 10 cities
+        problem = Problem(size, TRUCK_CAPACITY, MAX_CITY_NEED)
+        problem.map.display_cities()
+        # Draw Cities
+        if GUI_ENABLED:
+            draw_map(problem, win)
+            draw_map(problem, win2)
+        # create colony and give it the problem
+        colony = AntColony(problem)
+        # solve problem with colony
+        best_solution = colony.solve_problem()
+        print("Best Path: {0}".format(best_solution[0]))
+        print("Best Cost: {0}".format(best_solution[1]))
+        # solve with nearest neighbor
+        baseline_solver = NearestNeighborSolver(problem)
+        print("Nearest Neighbor Solution: ")
+        NNReturn = baseline_solver.solve()
+        print(NNReturn[1])
+        ##############################################
+        if GUI_ENABLED:
+            draw_solution(NNReturn, problem.map.cities, win2, problem)
+        # Store Results
+        ACOBest.append(best_solution[1])
+        NNBest.append(NNReturn[1])
+        Improvement = (1 - best_solution[1] / NNReturn[1]) * 100
+        Relative_Improvement.append(Improvement)
+        ##############################################
+        if GUI_ENABLED:
+            win.getMouse()
+            win.close()
+            win2.close()
+    print(ACOBest)
+    print(NNBest)
+    print(Relative_Improvement)
 
 
-main()
+main(CITY_SIZE)
 # problem = Problem(10)
 # ant = Ant(problem)
 # print(ant.choose_next_city(ant.calculate_probabilities(0)))

@@ -12,9 +12,10 @@ NUMBER_OF_ITERATIONS = 10 # the number of iterations to let ants explore map
 BASE_RANDOM_CHOICE_RATE = 0.3 # base rate at which ants will pick a random city (decreases with each iteration)
 # Obstacle (i.e., Disaster) Parameters
 DISASTER_RATE = 0.2
-DISASTER_MODE = False
+DISASTER_MODE = True
 # Main method parameter
 CITY_SIZE = [10, 15, 20, 25, 30]
+TRIAL_COUNT = 10
 # SLEEP TIMER
 SLEEP_ENABLED = False
 SLEEP_VALUE = 0.25
@@ -394,47 +395,71 @@ def draw_blocked(city1, city2, city_map, canvas):
 def main(CITY_SIZE):
     global win
     global win2
-    ACOBest = []
-    NNBest = []
+    ACOAverage = []
+    NNAverage = []
     Relative_Improvement = []
     for size in CITY_SIZE:
-        if GUI_ENABLED:
-            win = GraphWin(title="ACO", width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
-            win2 = GraphWin(title="Nearest Neighbor", width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
-        # generate problem with 10 cities
-        problem = Problem(size)
-        # Draw Cities
-        if GUI_ENABLED:
-            draw_map(problem, win)
-            draw_map(problem, win2)
-        # create colony and give it the problem
-        colony = AntColony(problem)
-        # solve problem with colony
-        best_solution = colony.solve_problem()
-        print("Best Path: {0}".format(best_solution[0]))
-        print("Best Cost: {0}".format(best_solution[1]))
-        # solve with nearest neighbor
-        baseline_solver = NearestNeighborSolver(problem)
-        print("Nearest Neighbor Solution: ")
-        NNReturn = baseline_solver.solve()
-        print(NNReturn[1])
-        ##############################################
-        if GUI_ENABLED:
-            draw_solution(NNReturn, problem.map.cities, win2)
-        ##############################################
-        # Store Results
-        ACOBest.append(best_solution[1])
-        NNBest.append(NNReturn[1])
-        Improvement = (1 - best_solution[1] / NNReturn[1]) * 100
+        ACO_Scores = []
+        NN_Scores = []
+        for i in range(TRIAL_COUNT):
+            if GUI_ENABLED:
+                win = GraphWin(title="ACO", width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
+                win2 = GraphWin(title="Nearest Neighbor", width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
+            # generate problem with 10 cities
+            problem = Problem(size)
+            # Draw Cities
+            if GUI_ENABLED:
+                draw_map(problem, win)
+                draw_map(problem, win2)
+            # create colony and give it the problem
+            colony = AntColony(problem)
+            # solve problem with colony
+            best_solution = colony.solve_problem()
+            print("Best Path: {0}".format(best_solution[0]))
+            print("Best Cost: {0}".format(best_solution[1]))
+            # solve with nearest neighbor
+            baseline_solver = NearestNeighborSolver(problem)
+            print("Nearest Neighbor Solution: ")
+            NNReturn = baseline_solver.solve()
+            print(NNReturn[1])
+            ##############################################
+            if GUI_ENABLED:
+                draw_solution(NNReturn, problem.map.cities, win2)
+            ##############################################
+            # Store Results
+            ACO_Scores.append(best_solution[1])
+            NN_Scores.append(NNReturn[1])
+            ##############################################
+            if GUI_ENABLED:
+                win.getMouse()
+                win.close()
+                win2.close()
+        ACOAverage.append(sum(ACO_Scores) / len(ACO_Scores))
+        NNAverage.append(sum(NN_Scores) / len(NN_Scores))
+        Improvement = (1 - ACOAverage[len(ACOAverage) - 1] / NNAverage[len(NNAverage) - 1]) * 100
         Relative_Improvement.append(Improvement)
-        ##############################################
-        if GUI_ENABLED:
-            win.getMouse()
-            win.close()
-            win2.close()
-    print(ACOBest)
-    print(NNBest)
+    print(CITY_SIZE)
+    print(ACOAverage)
+    print(NNAverage)
     print(Relative_Improvement)
+    f = open("Comparative_Data.csv", "a+")
+    if DISASTER_MODE:
+        f.write("TSP With Disasters\n")
+    else:
+        f.write("TSP Without Disasters\n")
+    for i in range(len(CITY_SIZE)):
+        f.write("{0}\t".format(CITY_SIZE[i]))
+    f.write("\n")
+    for i in range(len(ACOAverage)):
+        f.write("{0}\t".format(ACOAverage[i]))
+    f.write("\n")
+    for i in range(len(NNAverage)):
+        f.write("{0}\t".format(NNAverage[i]))
+    f.write("\n")
+    for i in range(len(Relative_Improvement)):
+        f.write("{0}\t".format(Relative_Improvement[i]))
+    f.write("\n")
+    f.close()
 
 main(CITY_SIZE)
 # problem = Problem(10)

@@ -16,6 +16,7 @@ DISASTER_MODE = True
 # Main method parameter
 CITY_SIZE = [15]
 TRIAL_COUNT = 1
+FILE_OUTPUT = False
 # SLEEP TIMER
 SLEEP_ENABLED = True
 SLEEP_VALUE = 0.25
@@ -392,6 +393,26 @@ def draw_blocked(city1, city2, city_map, canvas):
     line.setWidth(2)
     line.draw(canvas)
 
+def FileOutput(ACOAverage, NNAverage, Relative_Improvement):
+    f = open("Comparative_Data.csv", "a+")
+    if DISASTER_MODE:
+        f.write("TSP With Disasters\n")
+    else:
+        f.write("TSP Without Disasters\n")
+    for i in range(len(CITY_SIZE)):
+        f.write("{0}\t".format(CITY_SIZE[i]))
+    f.write("\n")
+    for i in range(len(ACOAverage)):
+        f.write("{0}\t".format(ACOAverage[i]))
+    f.write("\n")
+    for i in range(len(NNAverage)):
+        f.write("{0}\t".format(NNAverage[i]))
+    f.write("\n")
+    for i in range(len(Relative_Improvement)):
+        f.write("{0}\t".format(Relative_Improvement[i]))
+    f.write("\n")
+    f.close()
+
 def main(CITY_SIZE):
     global win
     global win2
@@ -445,24 +466,8 @@ def main(CITY_SIZE):
     print(ACOAverage)
     print(NNAverage)
     print(Relative_Improvement)
-    f = open("Comparative_Data.csv", "a+")
-    if DISASTER_MODE:
-        f.write("TSP With Disasters\n")
-    else:
-        f.write("TSP Without Disasters\n")
-    for i in range(len(CITY_SIZE)):
-        f.write("{0}\t".format(CITY_SIZE[i]))
-    f.write("\n")
-    for i in range(len(ACOAverage)):
-        f.write("{0}\t".format(ACOAverage[i]))
-    f.write("\n")
-    for i in range(len(NNAverage)):
-        f.write("{0}\t".format(NNAverage[i]))
-    f.write("\n")
-    for i in range(len(Relative_Improvement)):
-        f.write("{0}\t".format(Relative_Improvement[i]))
-    f.write("\n")
-    f.close()
+    if FILE_OUTPUT:
+        FileOutput(ACOAverage, NNAverage, Relative_Improvement)
 
 main(CITY_SIZE)
 # problem = Problem(10)

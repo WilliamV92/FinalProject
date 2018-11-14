@@ -17,13 +17,13 @@ DISASTER_MODE = False
 TRUCK_CAPACITY = 10 # how many units a truck can hold
 MAX_CITY_NEED = TRUCK_CAPACITY * 0.5 # the max need in units a particular city can have
 # Main method parameter
-CITY_SIZE = [10, 15, 20, 25, 30]
-TRIAL_COUNT = 10
+CITY_SIZE = [15]
+TRIAL_COUNT = 1
 # SLEEP TIMER
-SLEEP_ENABLED = False
+SLEEP_ENABLED = True
 SLEEP_VALUE = 0.25
 # UI 
-GUI_ENABLED = False
+GUI_ENABLED = True
 DISPLAY_WIDTH = 600
 DISPLAY_HEIGHT = 800
 drawn_lines = []
@@ -519,8 +519,11 @@ def main(CITY_SIZE):
                 win2.close()
         ACOAverage.append(sum(ACO_Scores) / len(ACO_Scores))
         NNAverage.append(sum(NN_Scores) / len(NN_Scores))
-        Improvement = (1 - ACOAverage[len(ACOAverage) - 1] / NNAverage[len(NNAverage) - 1]) * 100
-        Relative_Improvement.append(Improvement)
+        ACOAverageVal = ACOAverage[len(ACOAverage) - 1]
+        NNAverageVal = NNAverage[len(NNAverage) - 1]
+        Difference = abs(ACOAverageVal - NNAverageVal)
+        Average = (ACOAverageVal + NNAverageVal) / 2
+        Relative_Improvement.append(Difference / Average * 100)
     print(CITY_SIZE)
     print(ACOAverage)
     print(NNAverage)
